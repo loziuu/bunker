@@ -1,0 +1,6 @@
+control_nodes:
+  hosts:
+    10.0.0.3:
+worker_nodes:
+  hosts:
+    10.0.0.4:

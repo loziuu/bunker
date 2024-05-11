@@ -1,0 +1,12 @@
+# === containerd ===
+containerd_service: "https://raw.githubusercontent.com/containerd/containerd/main/containerd.service"
+containerd_file: "containerd-1.7.16-linux-arm64.tar.gz"
+containerd_binaries: "https://github.com/containerd/containerd/releases/download/v1.7.16/containerd-1.7.16-linux-arm64.tar.gz"
+
+# === RUNC ===
+runc_file: "https://github.com/opencontainers/runc/releases/download/v1.1.12/runc.{{arch}}"
+runc_checksum_file: "https://github.com/opencontainers/runc/releases/download/v1.1.12/runc.sha256sum"
+
+# === CNI Plugins ===
+cni_plugins_file: "https://github.com/containernetworking/plugins/releases/download/v1.4.1/cni-plugins-linux-arm64-v1.4.1.tgz"
+cni_plugins_checksum_file: "https://github.com/containernetworking/plugins/releases/download/v1.4.1/cni-plugins-linux-arm64-v1.4.1.tgz.sha256"

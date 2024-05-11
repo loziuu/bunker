@@ -1,0 +1,9 @@
+- name: Setting up the k8s
+  hosts: all
+
+- name: Setting up containerd on all nodes
+  import_playbook: setup_containerd.yml
+
+- name: Setting up kubelet on all nodes
+  import_playbook: setup_kubelet.yml
+

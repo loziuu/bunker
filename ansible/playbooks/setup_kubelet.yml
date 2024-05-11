@@ -1,0 +1,54 @@
+- name: Setup kubelet
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt package cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gpg
+
+    - name: Ensure the directory /etc/apt/keyrings exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Kubernetes GPG key
+      ansible.builtin.get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        mode: '0644'
+        validated_certs: yes
+
+    - name: Import the GPG key
+      command: sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg.bin
+
+    - name: Add Kubernetes apt repository
+      ansible.builtin.lineinfile:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        line: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /'
+        create: yes
+        state: present
+        insertafter: EOF
+
+    - name: Install Kubelet
+      ansible.builtin.apt:
+        name: kubelet
+        state: present
+
+    - name: Enable kubelet service
+      ansible.builtin.systemd:
+        name: kubelet
+        enabled: yes
+        state: started
