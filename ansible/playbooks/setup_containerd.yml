@@ -15,11 +15,13 @@
     - name: Download containerd binaries
       ansible.builtin.get_url:
         url: "{{ containerd_binaries }}"
+        dest: /tmp/{{containerd_file}}
 
     - name: Extract containerd binaries
       ansible.builtin.unarchive:
-        src: "{{ containerd_file }}"
+        src: "/tmp/{{ containerd_file }}"
         dest: /usr/local
+        remote_src: true
 
     - name: Download containerd.service
       ansible.builtin.get_url:
@@ -33,6 +35,7 @@
     - name: Enable now containerd containe
       ansible.builtin.systemd:
         name: containerd
+        state: started
         enabled: yes
 
     - name: Download runc
@@ -44,37 +47,38 @@
     - name: Download sha256sum file
       ansible.builtin.get_url:
         url: "{{ runc_checksum_file }}"
-        dest: "runc.sha256sum"
+        dest: "/tmp/runc.sha256sum"
 
     - name: Verify sha256 sum of runc
       ansible.builtin.shell: |
-        cat runc.sha256sum /usr/local/sbin/runc | sha256sum -c
+        cat /tmp/runc.sha256sum | sha256sum /usr/local/sbin/runc
       register: runc_sha256
 
     - name: Download cni_plugins
       ansible.builtin.get_url:
         url: "{{ cni_plugins_file }}"
-        dest: /tmp/setup/cni-plugins.tgz
+        dest: /tmp/cni-plugins.tgz
 
     - name: Download cni_plugin checksum file
       ansible.builtin.get_url:
         url: "{{ cni_plugins_checksum_file }}"
-        dest: "/tmp/setup/cni_plugins.sha256sum"
+        dest: "/tmp/cni_plugins.sha256sum"
 
     - name: Verify sha256 sum of cni
       ansible.builtin.shell: |
-        cat /tmp/setup/cni_plugins.sha256sum /tmp/setup/cni-plugins.tgz | sha256sum -c
+        cat /tmp/cni_plugins.sha256sum | sha256sum /tmp/cni-plugins.tgz 
       register: runc_sha256
+
+    - name: Ensure that /opt/cni/bin exists
+      ansible.builtin.file:
+        path: /opt/cni/bin
+        state: directory
 
     - name: Unarchive cni-plugins
       ansible.builtin.unarchive:
-        src: /tmp/setup/cni-plugins.tgz
+        src: /tmp/cni-plugins.tgz
         dest: /opt/cni/bin
-
-    - name: Remove temp directory
-      ansible.builtin.file:
-        path: /tmp/setup
-        state: absent
+        remote_src: true
 
     - name: Enable packet forwarding
       ansible.builtin.sysctl:

@@ -1,0 +1,5 @@
+- name: Join workers
+  hosts: worker_nodes
+  tasks:
+    - name: Join into cluster
+      command: kubeadm join 10.0.0.3:6443 --token qb9een.gvmx3tgdwlepxsbc --discovery-token-ca-cert-hash sha256:6c41dd8e945532ee56fb24f60d8b0ae5b4412ee396a5871fe12afca998064fab 

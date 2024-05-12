@@ -1,0 +1,18 @@
+- name: Install Cilium
+  hosts: all
+  tasks:
+    - name: Download Cilium CLI
+      ansible.builtin.get_url:
+        url: "https://github.com/cilium/cilium-cli/releases/download/v0.16.7/cilium-linux-arm64.tar.gz"
+        dest: /tmp/cilium.tar.gz
+        mode: 0755
+
+    - name: Extract Cilium CLI
+      ansible.builtin.unarchive:
+        src: /tmp/cilium.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+
+    - name: Install Cilium
+      ansible.builtin.shell:
+        cmd: cilium install --version 1.15.4

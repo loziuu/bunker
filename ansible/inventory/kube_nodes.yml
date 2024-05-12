@@ -1,6 +1,6 @@
 control_nodes:
   hosts:
-    10.0.0.3:
+    192.168.0.3:
 worker_nodes:
   hosts:
-    10.0.0.4:
+    192.168.0.4:
