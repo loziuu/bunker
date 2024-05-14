@@ -1,0 +1,12 @@
+- name: Resetting kube cluster
+  hosts: all
+  become: true
+  tasks: 
+    - name: Resetting kubeadm everywere
+      shell:
+        cmd: kubeadm reset -f
+
+    - name: Remove ~/.kube
+      file:
+        path: ~/.kube
+        state: absent

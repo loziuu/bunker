@@ -1,0 +1,69 @@
+- name: Setting up the k8s
+  hosts: all
+
+- name: Setting up containerd on all nodes
+  import_playbook: setup_containerd.yml
+
+- name: Setting up kubelet on all nodes
+  import_playbook: setup_kubelet.yml
+
+- name: Init cluster
+  hosts: control_nodes
+  become: yes
+  tasks:
+    - name: Include variables
+      include_vars: vars/jumpbox.yml
+
+    - name: Start cluster
+      shell: kubeadm init --pod-network-cidr=10.30.0.0/16
+      ignore_errors: true
+
+    - name: Get join token
+      shell: kubeadm token create --print-join-command
+      register: cluster_join_command
+
+    - name: Ensure that clutser directory exists on jumpbox
+      file:
+        path: {{ cluster_directory }}
+        state: directory
+
+    - name: Check if join command already exists
+      stat:
+        path: {{ cluster_join_command_file }}
+      register: join_file_status
+
+    - name: Copy join command to local file.
+      when: not join_file_status.stat.exists
+      copy:
+        content: {{ cluster_join_command }}
+        dest: {{ cluster_join_command_file }} 
+
+- name: Join worker nodes
+  hosts: worker_nodes
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Copy join command to worker node
+
+    - name: Join nodes
+      command: kubeadm join 10.0.0.3:6443 --token iirv0d.wqj477bivgoekxer --discovery-token-ca-cert-hash sha256:6c41dd8e945532ee56fb24f60d8b0ae5b4412ee396a5871fe12afca998064fab
+
+
+- name: Install Cilium
+  hosts: control_nodes
+  tasks:
+    - name: Download Cilium CLI
+      get_url:
+        url: "https://github.com/cilium/cilium-cli/releases/download/v0.16.7/cilium-linux-arm64.tar.gz"
+        dest: /tmp/cilium.tar.gz
+        mode: 0755
+
+    - name: Extract Cilium CLI
+      unarchive:
+        src: /tmp/cilium.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+
+    - name: Install Cilium
+      shell:
+        cmd: cilium install --version 1.15.4

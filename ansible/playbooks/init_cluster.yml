@@ -1,16 +1,3 @@
 - name: Setting up k8s on all nodes
   import_playbook: setup_kube.yml
 
-- name: Init cluster
-  hosts: control_nodes
-  tasks:
-    - name: Start cluster
-      ansible.builtin.shell:
-        cmd: kubeadm init
-        
-- name: Join workers
-  hosts: worker_nodes
-  tasks:
-    - name: Join workers
-      ansible.builtin.shell:
-        cmd: kubeadm join 10.0.0.2:6443 

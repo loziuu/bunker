@@ -11,41 +11,78 @@
   hosts: control_nodes
   become: yes
   tasks:
+    - name: Include variables
+      include_vars: vars/jumpbox.yml
+
+    - name: Reset kubeadm
+      shell: kubeadm reset -f
+
     - name: Start cluster
-      shell: kubeadm init --pod-network-cidr=192.160.0.0/24
-      ignore_errors: true
+      shell: kubeadm init --pod-network-cidr=10.30.0.0/16
+
+    - name: Create ~/.kube directory
+      file:
+        path: ~/.kube
+        state: directory
+
+    - name: Copy admin config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: ~/.kube/config
+        remote_src: true
+
+    - name: Ensure that clutser directory exists on jumpbox
+      file:
+        path: "{{ cluster_directory }}"
+        state: directory
+
+    - name: Check if join command already exists
+      stat:
+        path: "{{ cluster_join_command_file }}"
+      register: join_file_status
 
     - name: Get join token
+      when: not join_file_status.stat.exists
       shell: kubeadm token create --print-join-command
-      register: kubernetes_join_command
+      register: cluster_join_command
 
     - name: Copy join command to local file.
-      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="/tmp/kubernetes_join_command" mode=0777
+      local_action: copy content="{{ cluster_join_command.stdout_lines[0] }}" dest="/tmp/cluster_join_command" mode=0777
 
-- name: Join worker nodes
-  hosts: worker_nodes
-  become: yes
-  gather_facts: yes
-  tasks:
-    - name: Join nodes
-      command: kubeadm join 10.0.0.3:6443 --token iirv0d.wqj477bivgoekxer --discovery-token-ca-cert-hash sha256:6c41dd8e945532ee56fb24f60d8b0ae5b4412ee396a5871fe12afca998064fab
-
-
-- name: Install Cilium
-  hosts: all
+- name: Install Cilium on control nodes
+  hosts: control_nodes
   tasks:
     - name: Download Cilium CLI
-      ansible.builtin.get_url:
+      get_url:
         url: "https://github.com/cilium/cilium-cli/releases/download/v0.16.7/cilium-linux-arm64.tar.gz"
-        dest: /tmp/cilium.tar.gz
+        dest: /tmp/cilium.tar.gz 
         mode: 0755
 
     - name: Extract Cilium CLI
-      ansible.builtin.unarchive:
+      unarchive:
         src: /tmp/cilium.tar.gz
         dest: /usr/local/bin
         remote_src: true
 
     - name: Install Cilium
-      ansible.builtin.shell:
+      shell:
         cmd: cilium install --version 1.15.4
+
+- name: Join workers
+  hosts: worker_nodes
+  become: true
+  tasks:
+    - name: Copy join cluster command
+      copy: 
+        src: /tmp/cluster_join_command
+        dest: /tmp/cluster_join_command
+        mode: 0777
+   
+    - name: Reset kubeadm to be sure
+      shell:
+        cmd: kubeadm reset -f
+
+
+    - name: Join cluster
+      shell:
+        cmd: sh /tmp/cluster_join_command

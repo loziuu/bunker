@@ -1,0 +1,2 @@
+cluster_directory: ~/cluster
+cluster_join_command_file: ~/cluster/join_command
